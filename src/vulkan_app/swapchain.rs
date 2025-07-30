@@ -160,7 +160,7 @@ impl VulkanApp {
                 self.device.destroy_framebuffer(*framebuffer, None);
             }
             self.device.destroy_pipeline(self.graphics_pipeline, None);
-            self.device.destroy_pipeline(self.wireframe_pipeline, None);
+            self.device.destroy_pipeline(self.background_pipeline, None);
             self.device
                 .destroy_descriptor_pool(self.descriptor_pool, None);
             self.device
@@ -204,7 +204,7 @@ impl VulkanApp {
             create_image_views(&self.device, &self.swapchain_images, self.swapchain_format);
         let depth_format = images::find_depth_format(&self.instance, self.physical_device);
         self.render_pass = pipeline::create_render_pass(&self.device, self.swapchain_format, depth_format);
-        let (graphics_pipeline, pipeline_layout) = pipeline::create_graphics_pipeline(
+        let (graphics_pipeline, pipeline_layout) = pipeline::create_cube_pipeline(
             &self.device,
             self.render_pass,
             self.swapchain_extent,
@@ -212,7 +212,7 @@ impl VulkanApp {
         );
         self.graphics_pipeline = graphics_pipeline;
         self.pipeline_layout = pipeline_layout;
-        self.wireframe_pipeline = pipeline::create_wireframe_pipeline(
+        self.background_pipeline = pipeline::create_background_pipeline(
             &self.device,
             self.render_pass,
             self.swapchain_extent,

@@ -2,7 +2,7 @@ use ash::{vk, Entry};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use super::utils::{QueueFamilyIndices, UniformBufferObject};
-use super::vertex::{Vertex, INDICES, VERTICES, generate_wireframe_vertices};
+use super::vertex::{Vertex, INDICES, VERTICES};
 use super::{buffers, commands, descriptors, images, instance, pipeline, swapchain};
 
 pub struct VulkanApp {
@@ -25,7 +25,7 @@ pub struct VulkanApp {
     pub(super) render_pass: vk::RenderPass,
     pub(super) pipeline_layout: vk::PipelineLayout,
     pub(super) graphics_pipeline: vk::Pipeline,
-    pub(super) wireframe_pipeline: vk::Pipeline,
+    pub(super) background_pipeline: vk::Pipeline,
     pub(super) framebuffers: Vec<vk::Framebuffer>,
     pub(super) command_pool: vk::CommandPool,
     pub(super) command_buffers: Vec<vk::CommandBuffer>,
@@ -36,9 +36,6 @@ pub struct VulkanApp {
     pub(super) queue_family_indices: QueueFamilyIndices,
     pub(super) vertex_buffer: vk::Buffer,
     pub(super) vertex_buffer_memory: vk::DeviceMemory,
-    pub(super) wireframe_vertex_buffer: vk::Buffer,
-    pub(super) wireframe_vertex_buffer_memory: vk::DeviceMemory,
-    pub(super) wireframe_vertex_count: u32,
     pub(super) index_buffer: vk::Buffer,
     pub(super) index_buffer_memory: vk::DeviceMemory,
     pub(super) uniform_buffers: Vec<vk::Buffer>,
@@ -79,16 +76,6 @@ impl VulkanApp {
             &queue_family_indices,
             &VERTICES,
         );
-        let wire_vertices = generate_wireframe_vertices(24);
-        let wireframe_vertex_count = wire_vertices.len() as u32;
-        let (wireframe_vertex_buffer, wireframe_vertex_buffer_memory) =
-            buffers::create_vertex_buffer(
-                &instance,
-                &device,
-                physical_device,
-                &queue_family_indices,
-                &wire_vertices,
-            );
         let (index_buffer, index_buffer_memory) = buffers::create_index_buffer(
             &instance,
             &device,
@@ -114,13 +101,13 @@ impl VulkanApp {
         let depth_format = images::find_depth_format(&instance, physical_device);
         let descriptor_set_layout = descriptors::create_descriptor_set_layout(&device);
         let render_pass = pipeline::create_render_pass(&device, swapchain_format, depth_format);
-        let (graphics_pipeline, pipeline_layout) = pipeline::create_graphics_pipeline(
+        let (graphics_pipeline, pipeline_layout) = pipeline::create_cube_pipeline(
             &device,
             render_pass,
             swapchain_extent,
             descriptor_set_layout,
         );
-        let wireframe_pipeline = pipeline::create_wireframe_pipeline(
+        let background_pipeline = pipeline::create_background_pipeline(
             &device,
             render_pass,
             swapchain_extent,
@@ -184,7 +171,7 @@ impl VulkanApp {
             render_pass,
             pipeline_layout,
             graphics_pipeline,
-            wireframe_pipeline,
+            background_pipeline,
             framebuffers,
             command_pool,
             command_buffers,
@@ -195,9 +182,6 @@ impl VulkanApp {
             queue_family_indices,
             vertex_buffer,
             vertex_buffer_memory,
-            wireframe_vertex_buffer,
-            wireframe_vertex_buffer_memory,
-            wireframe_vertex_count,
             index_buffer,
             index_buffer_memory,
             uniform_buffers,
@@ -312,8 +296,6 @@ impl Drop for VulkanApp {
             self.cleanup_swapchain();
             self.device.destroy_buffer(self.index_buffer, None);
             self.device.free_memory(self.index_buffer_memory, None);
-            self.device.destroy_buffer(self.wireframe_vertex_buffer, None);
-            self.device.free_memory(self.wireframe_vertex_buffer_memory, None);
             self.device.destroy_buffer(self.vertex_buffer, None);
             self.device.free_memory(self.vertex_buffer_memory, None);
             self.device
@@ -325,7 +307,7 @@ impl Drop for VulkanApp {
             self.device.destroy_image_view(self.depth_image_view, None);
             self.device.destroy_image(self.depth_image, None);
             self.device.free_memory(self.depth_image_memory, None);
-            self.device.destroy_pipeline(self.wireframe_pipeline, None);
+            self.device.destroy_pipeline(self.background_pipeline, None);
             self.device
                 .destroy_descriptor_pool(self.descriptor_pool, None);
             self.device
