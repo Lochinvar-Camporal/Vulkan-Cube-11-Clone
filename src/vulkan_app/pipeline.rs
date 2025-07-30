@@ -68,14 +68,14 @@ pub fn create_render_pass(
     unsafe { device.create_render_pass(&render_pass_info, None).unwrap() }
 }
 
-pub fn create_graphics_pipeline(
+pub fn create_cube_pipeline(
     device: &ash::Device,
     render_pass: vk::RenderPass,
     extent: vk::Extent2D,
     descriptor_set_layout: vk::DescriptorSetLayout,
 ) -> (vk::Pipeline, vk::PipelineLayout) {
-    let vert_shader_code = include_bytes!(env!("VERT_SHADER_PATH"));
-    let frag_shader_code = include_bytes!(env!("FRAG_SHADER_PATH"));
+    let vert_shader_code = include_bytes!(env!("CUBE_VERT_SHADER_PATH"));
+    let frag_shader_code = include_bytes!(env!("CUBE_FRAG_SHADER_PATH"));
 
     let vert_shader_module = create_shader_module(device, vert_shader_code);
     let frag_shader_module = create_shader_module(device, frag_shader_code);
@@ -187,14 +187,14 @@ pub fn create_graphics_pipeline(
     (graphics_pipeline, pipeline_layout)
 }
 
-pub fn create_wireframe_pipeline(
+pub fn create_background_pipeline(
     device: &ash::Device,
     render_pass: vk::RenderPass,
     extent: vk::Extent2D,
     pipeline_layout: vk::PipelineLayout,
 ) -> vk::Pipeline {
-    let vert_shader_code = include_bytes!(env!("VERT_SHADER_PATH"));
-    let frag_shader_code = include_bytes!(env!("FRAG_SHADER_PATH"));
+    let vert_shader_code = include_bytes!(env!("BACKGROUND_VERT_SHADER_PATH"));
+    let frag_shader_code = include_bytes!(env!("BACKGROUND_FRAG_SHADER_PATH"));
 
     let vert_shader_module = create_shader_module(device, vert_shader_code);
     let frag_shader_module = create_shader_module(device, frag_shader_code);
@@ -213,14 +213,10 @@ pub fn create_wireframe_pipeline(
 
     let shader_stages = [vert_shader_stage_info.build(), frag_shader_stage_info.build()];
 
-    let binding_description = Vertex::get_binding_description();
-    let attribute_descriptions = Vertex::get_attribute_descriptions();
-    let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder()
-        .vertex_binding_descriptions(std::slice::from_ref(&binding_description))
-        .vertex_attribute_descriptions(&attribute_descriptions);
+    let vertex_input_info = vk::PipelineVertexInputStateCreateInfo::builder();
 
     let input_assembly = vk::PipelineInputAssemblyStateCreateInfo::builder()
-        .topology(vk::PrimitiveTopology::LINE_LIST)
+        .topology(vk::PrimitiveTopology::TRIANGLE_LIST)
         .primitive_restart_enable(false);
 
     let viewport = vk::Viewport::builder()
@@ -242,9 +238,9 @@ pub fn create_wireframe_pipeline(
     let rasterizer = vk::PipelineRasterizationStateCreateInfo::builder()
         .depth_clamp_enable(false)
         .rasterizer_discard_enable(false)
-        .polygon_mode(vk::PolygonMode::LINE)
-        .line_width(0.03)
-        .cull_mode(vk::CullModeFlags::BACK)
+        .polygon_mode(vk::PolygonMode::FILL)
+        .line_width(1.0)
+        .cull_mode(vk::CullModeFlags::NONE)
         .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
         .depth_bias_enable(false);
 
@@ -253,9 +249,9 @@ pub fn create_wireframe_pipeline(
         .rasterization_samples(vk::SampleCountFlags::TYPE_1);
 
     let depth_stencil = vk::PipelineDepthStencilStateCreateInfo::builder()
-        .depth_test_enable(true)
-        .depth_write_enable(true)
-        .depth_compare_op(vk::CompareOp::LESS)
+        .depth_test_enable(false)
+        .depth_write_enable(false)
+        .depth_compare_op(vk::CompareOp::ALWAYS)
         .depth_bounds_test_enable(false)
         .stencil_test_enable(false);
 
