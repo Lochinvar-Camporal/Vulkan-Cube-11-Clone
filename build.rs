@@ -35,7 +35,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     std::fs::write(&out_path, compiled.as_binary_u8())?;
 
-                    let env_var_name = format!("{}_SHADER_PATH", ext.to_uppercase());
+                    let stem = in_path.file_stem().unwrap().to_str().unwrap().to_uppercase();
+                    let env_var_name = format!("{}_{}_SHADER_PATH", stem, ext.to_uppercase());
                     println!("cargo:rustc-env={}={}", env_var_name, out_path.to_str().unwrap());
                 }
             }
